@@ -1,9 +1,4 @@
-# MakiaV4 Frontend & Backend 
+# MakiaV4 Frontend & Backend
 
 
-
-Written in Flutter and Firebase. 
-
-
-
-
+Written in Flutter and Firebase 
