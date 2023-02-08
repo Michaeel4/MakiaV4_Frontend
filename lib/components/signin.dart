@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:makia_f/screens/MainScreen.dart';
 
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:makia_f/jwt_token.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key, required this.title}) : super(key: key);
@@ -21,37 +26,28 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> getUser() async {
     String id = "";
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      if (user == null) {
-        print('User is currently signed out!');
-      } else {
-        print('User is signed in!');
-        Navigator.pushNamed(context, '/');
-      }
-    });
-
-    // if (user.uid != null) {
-    //   Future.delayed(Duration(seconds: 2), () {
-    //     Navigator.pushNamed(context, '/main');
-    //   });
-    // }
+    // create a http post request
+    final response = await http
+        .post(
+          Uri.parse('http://localhost:3003/login'),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonEncode(<String, String>{
+            'username': email!,
+            'password': password!,
+          }),
+        )
+        .then((value) => {
+              print(value.body),
+              writeJWT(value.body),
+              Navigator.pushNamed(context, '/'),
+            });
   }
-
-  // @override
-  // initState() {
-  //   super.initState();
-  //   WidgetsBinding.instance.addPostFrameCallback((timestamp) {
-  //     getUser();
-  //   });
-  // }
 
   @override
   Widget build(BuildContext context) {
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   getUser();
-    // });
     return Scaffold(
-      //key: _formKey,
       backgroundColor: Theme.of(context).colorScheme.background,
       body: Container(
         padding: const EdgeInsets.all(20),
@@ -74,9 +70,9 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 children: [
                   TextFormField(
-                    validator: (value) => EmailValidator.validate(value!)
-                        ? null
-                        : "Please enter a valid email",
+                    // validator: (value) => validate(value!)
+                    //     ? null
+                    //     : "Please enter a valid email",
                     onSaved: (val) {
                       print(val);
                       email = val;
@@ -134,48 +130,10 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         _formKey.currentState!.save();
-
-                        print("log info:");
-
-                        print(email!);
-                        print(password!);
-
-                        //Navigator.pushNamed(context, '/main');
-                        try {
-                          final credential = FirebaseAuth.instance
-                              .signInWithEmailAndPassword(
-                                  email: email!, password: password!);
-                        } on FirebaseAuthException catch (e) {
-                          if (e.code == 'user-not-found') {
-                            print('No user found for that email.');
-                          } else if (e.code == 'wrong-password') {
-                            print('Wrong password provided for that user.');
-                          }
-                        }
+                        // print("log info:");
+                        // print(email!);
+                        // print(password!);
                         getUser();
-                        // getUser().then((value) => {
-                        //       if (value != null)
-                        //         {
-                        //           print("VALUE IS NOT NULL!"),
-                        //           Navigator.pushNamed(context, '/')
-                        //         }
-                        //       else
-                        //         {print("value is null!")}
-                        //     });
-
-                        //   .then((result) {
-                        // if (result == null) {
-                        //   print(email!);
-                        //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        //     content: Text(
-                        //       result,
-                        //       style: TextStyle(fontSize: 16),
-                        //     ),
-                        //   ));
-                        // } else {
-                        //   print("HANS MAULWURF!");
-                        // }
-                        // });
                       }
                     },
                     style: ElevatedButton.styleFrom(

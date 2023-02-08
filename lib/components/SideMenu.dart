@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'package:makia_f/jwt_token.dart';
+
 class SideMenu extends StatelessWidget {
   const SideMenu({
     Key? key,
@@ -9,9 +11,17 @@ class SideMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Future<void> _signOut() async {
-      await FirebaseAuth.instance
-          .signOut()
-          .then((value) => Navigator.pushNamed(context, '/signin'));
+      storage.delete(key: 'jwt');
+
+      var jwt = await storage.read(key: 'jwt');
+
+      if (jwt == null) {
+        print("jwt is null");
+        Navigator.pushNamed(context, '/signin');
+      }
+      // await FirebaseAuth.instance
+      //     .signOut()
+      //     .then((value) => Navigator.pushNamed(context, '/signin'));
     }
 
     return Drawer(
@@ -19,7 +29,7 @@ class SideMenu extends StatelessWidget {
         children: [
           DrawerHeader(
               child: Container(
-                  child: Text("Makia V4"),
+                  child: Text("Makia V3"),
                   alignment: Alignment.center,
                   height: 10)
               //Image.asset("assets/images/logo.png"),

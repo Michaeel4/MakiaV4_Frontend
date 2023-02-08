@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:js_util';
 
 import 'package:makia_f/models/RecentFile.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import '../../../constants.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:http/http.dart' as http;
 
 class RecentFiles extends StatefulWidget {
   @override
@@ -20,41 +22,58 @@ class _RecentFilesState extends State<RecentFiles> {
   String? date = "";
   String? url = "";
 
+  double _minSpeed = 0;
+  double _maxSpeed = 100;
+
   final databaseReference = FirebaseDatabase.instance.ref();
 
   List<RecentFile> recentFiles = [];
 
   Future getData() async {
-    final ref = FirebaseDatabase.instance.ref("/cars");
-    final snapshot = await ref.get();
-    if (snapshot.exists) {
-      print(snapshot.value);
-      snapshot.children.forEach((element) {
-        print(element.value);
-        var file = RecentFile(
-            icon: "assets/icons/media_file.svg",
-            title: "Car 01",
-            date: "01-03-2021",
-            avg_speed: element.child("avg_speed").value.toString(),
-            video_file: "url");
+    // final ref = FirebaseDatabase.instance.ref("/cars");
+    // final snapshot = await ref.get();
+    // if (snapshot.exists) {
+    //   print("parent");
+    //   print(snapshot.children.first.key);
+    //   print(snapshot.value);
+    //   snapshot.children.forEach((element) {
+    //     print("children");
+    //     print(element.key);
+    //     var file = RecentFile(
+    //         icon: "assets/icons/media_file.svg",
+    //         title: element.key.toString(),
+    //         date: element.child("date").value.toString(),
+    //         avg_speed: element.child("speed").value.toString() + " km/h",
+    //         video_file: element.child("url").value.toString());
 
-        recentFiles.add(file);
+    //     recentFiles.add(file);
 
-        setState(() {});
-      });
-
-      print("recentfiles length");
-
-      print(recentFiles.length);
-
-      print("done loading data");
-
-      // print(snapshot.value);
-      // print(snapshot.children.length);
-      // print(snapshot.children.first.child("url").value);
-    } else {
-      print('No data available.');
-    }
+    //     setState(() {});
+    //   });
+    var data;
+    var file;
+    final response = await http
+        .get(
+          Uri.parse('http://localhost:3003/makia/entries'),
+          // headers: <String, String>{
+          //   'Content-Type': 'application/json; charset=UTF-8',
+          // },
+        )
+        .then((value) => {
+              data = json.decode(value.body),
+              print(data.length),
+              data.forEach((element) {
+                print(element["id"]);
+                file = RecentFile(
+                    icon: "./assets/icons/media_file.svg",
+                    title: element["id"].toString(),
+                    date: element["timestamp"].toString(),
+                    avg_speed: element["avgVelocity"].toString() + " km/h",
+                    video_file: element["category"].toString());
+                recentFiles.add(file);
+                setState(() {});
+              }),
+            });
   }
 
   @override
@@ -83,17 +102,42 @@ class _RecentFilesState extends State<RecentFiles> {
             "Recent Files",
             style: Theme.of(context).textTheme.subtitle1,
           ),
+          Container(
+            padding: EdgeInsets.symmetric(vertical: defaultPadding),
+            child: Column(
+              children: [
+                Text("Avg. Speed Filter"),
+                Slider(
+                  value: _minSpeed,
+                  min: 0,
+                  max: 100,
+                  divisions: 100,
+                  onChanged: (value) {
+                    setState(() {
+                      _minSpeed = value;
+                    });
+                  },
+                ),
+                Slider(
+                  value: _maxSpeed,
+                  min: 0,
+                  max: 100,
+                  divisions: 100,
+                  onChanged: (value) {
+                    setState(() {
+                      _maxSpeed = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
           SizedBox(
               height: 500,
               width: double.infinity,
               child: recentFiles.isEmpty
                   ? Center(child: CircularProgressIndicator())
                   : Stack(children: [
-                      // FutureBuilder(
-                      //     future: getData(),
-                      //     builder: (context, snapshot) {
-                      //       print(snapshot.connectionState);
-                      //       if (snapshot.connectionState == ConnectionState.done) {
                       DataTable2(
                           minWidth: 600,
                           columnSpacing: defaultPadding,
@@ -103,15 +147,16 @@ class _RecentFilesState extends State<RecentFiles> {
                             ),
                             DataColumn(label: Text("Date")),
                             DataColumn(label: Text("Avg. Speed")),
-                            DataColumn(label: Text("Video File")),
+                            DataColumn(label: Text("Vehicle Type")),
                           ],
                           rows: List.generate(recentFiles.length, (index) {
                             print(recentFiles.first.title);
                             print(index);
+
                             return DataRow(
                               cells: [
                                 DataCell(
-                                  Text("hans"),
+                                  Text(recentFiles[index].title.toString()),
                                   onTap: () {
                                     // Add your code to handle the tap event here
 
@@ -133,14 +178,12 @@ class _RecentFilesState extends State<RecentFiles> {
                                   onTap: () {
                                     print("you tapped me!");
                                     setState(() {
-                                      setState(() {
-                                        _showOverlay = true;
+                                      _showOverlay = true;
 
-                                        title = recentFiles[index].title;
-                                        date = recentFiles[index].date;
-                                        speed = recentFiles[index].avg_speed;
-                                        url = recentFiles[index].video_file;
-                                      });
+                                      title = recentFiles[index].title;
+                                      date = recentFiles[index].date;
+                                      speed = recentFiles[index].avg_speed;
+                                      url = recentFiles[index].video_file;
                                     });
                                     // Add your code to handle the tap event here
                                   },
@@ -189,34 +232,63 @@ class _RecentFilesState extends State<RecentFiles> {
                           child: Container(
                             alignment: Alignment.center,
                             color: Colors.black.withOpacity(0.5),
-                            child: Row(
+                            child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                Column(
                                   children: [
-                                    IconButton(
-                                      icon: Icon(Icons.menu),
-                                      onPressed: () {
-                                        setState(() {
-                                          _showOverlay = false;
-                                        });
-                                      },
-                                    ),
-
-                                    // Text("Overlay"),
-                                    // // Text(title),
-                                    // // Text(date),
+                                    Container(
+                                      child: IconButton(
+                                        icon: Icon(Icons.close),
+                                        onPressed: () {
+                                          setState(() {
+                                            _showOverlay = false;
+                                          });
+                                        },
+                                      ),
+                                      alignment: Alignment.topRight,
+                                      margin: const EdgeInsets.only(right: 15),
+                                    )
                                   ],
                                 ),
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
                                   children: [
-                                    Text("Video placeholder"),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Car ID: " + this.title!,
+                                          textAlign: TextAlign.left,
+                                          style: (TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          )),
+                                        ),
+                                        Text("Date: " + this.date!),
+                                        Text("Avg. Speed: " + this.speed!),
+                                      ],
+                                    ),
+                                    Container(
+                                      alignment: Alignment.centerRight,
+                                      width: 400,
+                                      height: 400,
+                                      color: Colors.white,
+                                      child: Text('Video placeholder'),
+                                    ),
                                   ],
-                                )
+                                ),
                               ],
                             ),
+                            // Column(
+                            //   mainAxisAlignment: MainAxisAlignment.center,
+                            //   children: [
+                            //     Text("Video placeholder"),
+                            //   ],
+                            // )
                           ),
                         ),
                     ])),

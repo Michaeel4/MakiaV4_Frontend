@@ -8,6 +8,10 @@ import 'package:makia_f/responsive.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:makia_f/components/DashBoardScreen.dart';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'package:makia_f/jwt_token.dart';
+
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key, required this.title});
 
@@ -28,7 +32,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _counter = 0;
-
+  final storage = const FlutterSecureStorage();
   User? _user;
 
   void _incrementCounter() {
@@ -52,48 +56,32 @@ class _MainScreenState extends State<MainScreen> {
   Future getUserData() async {
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       if (user?.uid != "") {
-        print("found user");
       } else {
         Navigator.pushNamed(context, '/signin');
       }
-    }).onDone(() {
-      print("hello world");
-    });
-
-    // user = FirebaseAuth.instance.currentUser;
-
-    // if (user?.uid == null) {
-    //   Navigator.pushNamed(context, '/signin');
-    // } else {
-    //   print("found user");
-    // }
-    // print(user.uid);
-    // print("YES");
-    // if (user.uid == "") {
-    //   Future.delayed(Duration(seconds: 2), () {
-    //     Navigator.pushNamed(context, '/signin');
-    //   });
-    // }
-    // return user.uid;
+    }).onDone(() {});
   }
 
+  // This function checks whetever there is a valid JWT token stored or not
   Future<void> isLogged() async {
-    //return FirebaseAuth.instance.currentUser;
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      if (user != null) {
-        print(user.uid);
-      } else {
-        Navigator.pushNamed(context, '/signin');
-      }
-    }).onDone(() {
-      print("hello world");
-    });
+    var jwt = await storage.read(key: 'jwt');
+
+    if (jwt != null) {
+    } else if (jwt == null) {
+      Navigator.pushNamed(context, '/signin');
+      return;
+    }
   }
 
   Future<void> _signOut() async {
-    await FirebaseAuth.instance
-        .signOut()
-        .then((value) => Navigator.pushNamed(context, '/signin'));
+    storage.delete(key: 'jwt');
+
+    var jwt = await storage.read(key: 'jwt');
+
+    if (jwt == null) {
+      print("jwt is null");
+      Navigator.pushNamed(context, '/signin');
+    }
   }
 
   @override
@@ -105,7 +93,6 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     // WidgetsBinding.instance.addPostFrameCallback((timestamp) {
-    //   isLogged();
     // });
     // WidgetsBinding.instance.addPostFrameCallback((timestamp) {
     //   getUserData();
@@ -136,13 +123,4 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ));
   }
-
-  // return Scaffold(
-  //   key: context.read<MenuController>().scaffoldKey,
-  //   drawer: SideMenu(),
-  //   body: SafeArea(
-
-  //   ),
-  // );
-
 }
